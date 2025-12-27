@@ -5,7 +5,12 @@ using UnityEngine.UI;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
-    public float moveSpeed = 10f;
+    public float moveSpeed = 5f;
+
+    [Header("Run")]
+    public float runSpeed = 15f;
+    public float runStaminaCostPerSecond = 20f;
+    public KeyCode runKey = KeyCode.LeftShift;
 
     [Header("Dash")]
     public float dashSpeed = 50f;
@@ -30,6 +35,7 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody rb;
     private Vector3 moveInput;
 
+    private bool isRunning = false;
     private bool isDashing = false;
     private bool canDash = true;
 
@@ -37,10 +43,8 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
-        // ตั้งค่า Stamina เริ่มต้น
         currentStamina = maxStamina;
         staminaSlider.maxValue = maxStamina;
-
         UpdateStaminaUI();
     }
 
@@ -51,17 +55,28 @@ public class PlayerMovement : MonoBehaviour
         float z = Input.GetAxisRaw("Vertical");
         moveInput = new Vector3(x, 0, z).normalized;
 
-        // ฟื้น Stamina
-        if (!isDashing && currentStamina < maxStamina)
+        // ===== RUN =====
+        isRunning =
+            Input.GetKey(runKey) &&
+            moveInput != Vector3.zero &&
+            currentStamina > 0 &&
+            !isDashing;
+
+        if (isRunning)
+        {
+            currentStamina -= runStaminaCostPerSecond * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+            UpdateStaminaUI();
+        }
+        else if (!isDashing && currentStamina < maxStamina)
         {
             currentStamina += staminaRegenRate * Time.deltaTime;
             currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
-
             UpdateStaminaUI();
         }
 
-        // Dash
-        if (Input.GetKeyDown(KeyCode.LeftShift) && moveInput != Vector3.zero)
+        // ===== DASH =====
+        if (Input.GetKeyDown(KeyCode.Space) && moveInput != Vector3.zero)
         {
             TryDash();
         }
@@ -71,7 +86,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!isDashing)
         {
-            rb.MovePosition(transform.position + moveInput * moveSpeed * Time.fixedDeltaTime);
+            float speed = isRunning ? runSpeed : moveSpeed;
+            rb.MovePosition(transform.position + moveInput * speed * Time.fixedDeltaTime);
         }
     }
 
@@ -80,11 +96,10 @@ public class PlayerMovement : MonoBehaviour
         if (!canDash || isDashing) return;
         if (currentStamina < dashStaminaCost) return;
 
-        // ใช้ Stamina
         currentStamina -= dashStaminaCost;
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
-
         UpdateStaminaUI();
+
         StartCoroutine(Dash());
     }
 
@@ -115,16 +130,10 @@ public class PlayerMovement : MonoBehaviour
         float percent = currentStamina / maxStamina;
 
         if (percent > 0.6f)
-        {
             staminaFill.color = highStaminaColor;
-        }
         else if (percent > 0.3f)
-        {
             staminaFill.color = midStaminaColor;
-        }
         else
-        {
             staminaFill.color = lowStaminaColor;
-        }
     }
 }
