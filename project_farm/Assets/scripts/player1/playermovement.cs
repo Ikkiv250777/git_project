@@ -39,6 +39,13 @@ public class PlayerMovement : MonoBehaviour
     private bool isDashing = false;
     private bool canDash = true;
 
+    [Header("Animator")]
+    public Animator animator;
+
+    // 🔴 เพิ่ม: SpriteRenderer ของ Visual
+    [Header("Visual")]
+    public SpriteRenderer visualSprite;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -79,6 +86,19 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && moveInput != Vector3.zero)
         {
             TryDash();
+        }
+
+        // ===== ANIMATION =====
+        animator.SetBool("isplayerwalk", Mathf.Abs(x) > 0);
+
+        // 🔴 ===== FLIP ซ้าย / ขวา =====
+        if (x < 0)
+        {
+            visualSprite.flipX = false; // หันซ้าย
+        }
+        else if (x > 0)
+        {
+            visualSprite.flipX = true;  // หันขวา
         }
     }
 
